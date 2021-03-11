@@ -1,8 +1,9 @@
 //Make global vars
 let scene, camera, renderer, sphere, raycaster, intersects, INTERSECTED, distance;
 
-const mouse = new THREE.Vector2();
-const dir = new THREE.Vector3(15,0,0);
+const mouse = new THREE.Vector3();
+const origin = new THREE.Vector3(-10,0,0);
+const dir = new THREE.Vector3(30,0,0);
 
 
 init();
@@ -31,8 +32,9 @@ function init() {
         flatShading: false,
       });
     sphere = new THREE.Mesh( geometry, material );
+    //sphere.translateX(10); //remove from origin
+    sphere.updateMatrixWorld();
     scene.add( sphere );
-    sphere.position.x = 10; //remove from origin
 
     raycaster = new THREE.Raycaster();
 
@@ -67,6 +69,7 @@ function onMouseMove( event ) {
 	// (-1 to +1) for both components
     event.preventDefault();
 
+    mouse.z = 10;
 	mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
 	mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
 
@@ -84,20 +87,23 @@ function animate() {
 function render() {
 
 	// update the picking ray with the camera and mouse position
-	raycaster.setFromCamera( mouse, camera );
+    // console.log(dir);
+    // console.log(origin);
 
-    const intersects = raycaster.intersectObjects( scene.children );
+    raycaster.ray.set( origin, dir.normalize() );
+    scene.add( new THREE.ArrowHelper(raycaster.ray.direction, raycaster.ray.origin,3,0xff0000));
+
+    const intersects = raycaster.intersectObjects(scene.children, true);
 
     if ( intersects.length > 0 ) {
 
         if ( INTERSECTED != intersects[ 0 ].object ) {
 
-            if ( INTERSECTED ) INTERSECTED.material.color.setHex( INTERSECTED.currentHex );
+            if ( INTERSECTED ) sphere.material.color.setHex( INTERSECTED.currentHex );
 
             INTERSECTED = intersects[ 0 ].object;
             INTERSECTED.currentHex = INTERSECTED.material.color.getHex();
-            INTERSECTED.material.color.setHex( 0xff00670 );
-            // console.log(intersects);
+            INTERSECTED.material.color.setHex( 0xff00070 );
 
             // SRP calculation
             const {0: {distance}} = intersects;
@@ -108,7 +114,7 @@ function render() {
             let aSRP = -Cr*(G1/(distance**2)*areaMass);
 
             console.log(aSRP);
-            console.log(distance);
+            console.log('We have contact');
 
         }
 
@@ -117,7 +123,6 @@ function render() {
         if ( INTERSECTED ) INTERSECTED.material.color.setHex( INTERSECTED.currentHex );
 
         INTERSECTED = null;
-raycaster
     }
 
 
