@@ -1,11 +1,20 @@
 //Make global vars
 let scene, camera, renderer, sphere, raycaster, intersects, INTERSECTED, distance;
 
-const mouse = new THREE.Vector3();
-const origin = new THREE.Vector3(-10,0,0);
-const dir = new THREE.Vector3(30,0,0);
-let zRange = [-5,-4,-3,-2,-1,0,1,2,3,4,5];
-let yRange = [-5,-4,-3,-2,-1,0,1,2,3,4,5];
+let origin = new THREE.Vector3(10,0,0); //Ray origin
+let dir = new THREE.Vector3(-150,0,0); //Ray direction
+let u = new THREE.Vector3(); //Ray direction unit vector
+
+// Pixel array
+let startNo = -3;
+let endNo = 3;
+let step = 0.1;
+let zRange = range(startNo, endNo, step);
+let yRange = range(startNo, endNo, step);
+let radIn = 1.1; //m - rad for cannonball
+let hitPointY = [];
+let hitPointZ = [];
+
 
 
 init();
@@ -23,17 +32,18 @@ function init() {
 
     //Add light
     const light = new THREE.DirectionalLight( 0xffffff, 1 );
-    light.position.set( 1, 1, 1 ).normalize();
+    light.position.set( 100, 100, 100 ).normalize();
     scene.add( light );
 
-    const geometry = new THREE.SphereGeometry( 2, 32, 32 );
+    const geometry = new THREE.SphereGeometry( radIn, 32, 32 );
 
     const material = new THREE.MeshPhongMaterial({
         color: 0xFFFF00,    // red (can also use a CSS color string here)
         flatShading: false,
       });
     sphere = new THREE.Mesh( geometry, material );
-    //sphere.translateX(10); //remove from origin
+    sphere.position.z = 0.5;
+    sphere.position.y = 0.5;
     sphere.updateMatrixWorld();
     scene.add( sphere );
 
@@ -46,7 +56,7 @@ function init() {
 
     // Camera originates at same point as box geo - have to move add x change to stop intercepting
     camera.position.z = 15;
-    // camera.position.x = 5;
+
 
     // axis red-x, green-Y, blue-z
     // const axesHelper = new THREE.AxesHelper( 5 );
@@ -73,6 +83,10 @@ function animate() {
 
 }
 
+function range(start, end, step) {
+    const len = Math.floor((end - start) / step) + 1
+    return Array(len).fill().map((_, idx) => start + (idx * step))
+}
 
 function render() {
 
@@ -80,43 +94,84 @@ function render() {
 
 }
 
+function transform( yaw,  ) {
+    // Rotates frame round the z axis (yaw)
+
+}
+
+// function extractValue(arr, prop) {
+
+//     // extract value from property
+//     let extractedValue = arr.map(item => item[prop]);
+
+//     return extractedValue;
+
+// }
+
+// function exportToCsv(Results) {
+//     var CsvString = "";
+//     Results.forEach(function(RowItem, RowIndex) {
+//       RowItem.forEach(function(ColItem, ColIndex) {
+//         CsvString += ColItem + ',';
+//       });
+//       CsvString += "\r\n";
+//     });
+//     CsvString = "data:application/csv," + encodeURIComponent(CsvString);
+//    var x = document.createElement("A");
+//    x.setAttribute("href", CsvString );
+//    x.setAttribute("download","somedata.csv");
+//    document.body.appendChild(x);
+//   }
+  
+
 function Raycast() {
 
-    let n=0;
+    let 
 
-    for (zRange[n]; n < 11; n++) {
+    n=0;
 
-        let m=0;
+    for (zRange[n]; n < zRange.length ; n++) {
+
+        m=0;
         origin.z = zRange[n];
 
-        for(yRange[m]; m < 11; m++) {
-            console.log(origin);
+        for(yRange[m]; m < yRange.length ; m++) {
             origin.y = yRange[m];
 
             raycaster.ray.set( origin, dir.normalize() );
             scene.add( new THREE.ArrowHelper(raycaster.ray.direction, raycaster.ray.origin,3,0xff0000));
 
             const intersects = raycaster.intersectObjects(scene.children, true);
-            console.log(intersects[0]);
+            // console.log(intersects[0]
 
-            if ( intersects.length > 0 ) {
+            if ( intersects.length > 0 && intersects[0].face !== null) {
 
-                if ( INTERSECTED ) sphere.material.color.setHex( INTERSECTED.currentHex );
+                console.log('array length', intersects);
 
-                INTERSECTED = intersects[ 0 ].object;
+                INTERSECTED = intersects[ 0 ].object;          
                 INTERSECTED.currentHex = INTERSECTED.material.color.getHex();
                 INTERSECTED.material.color.setHex( 0xff00070 );
+                
+                if ( INTERSECTED ) sphere.material.color.setHex( INTERSECTED.currentHex );
 
                 // SRP calculation
                 const {0: {distance}} = intersects;
-                let G1 = Math.pow(10,14); //kg km/s^2 - soler rad const
-                let Cr = 1.12; // Reflectivity
-                let areaMass = 0.0055; //m^2/kg - area to mass ratio
+                let W = 1368; //W/m2 - solar const
+                let v = 0.7; // Reflectivity
+                let m = 1; //kg - area to mass ratio
+                let u = 0.4; //Specularity
+                let c = Math.pow(3,8); //Speed of light - UPDATE TO MORE ACCURATE
 
-                let aSRP = -Cr*(G1/(distance**2)*areaMass);
+                // console.log(radIn);
 
-                console.log(aSRP);
+                let fSRP = ((W*Math.PI*Math.pow(radIn,2))/c)*(1+(4/9)*v-(4/9)*v*u); //Force ignoring reflection and direction - UPDATEmen
+
+                console.log(fSRP);
                 console.log('We have contact');
+                console.log(origin);
+
+                hitPointY.push(origin.y);
+                hitPointZ.push(origin.z);
 
             } else {
 
@@ -129,6 +184,8 @@ function Raycast() {
         
         }
     }
+
+    console.log(hitPointY,hitPointZ);
 
 }
 
