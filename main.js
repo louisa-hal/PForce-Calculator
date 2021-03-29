@@ -1,19 +1,22 @@
 //Make global vars
 let scene, camera, renderer, sphere, raycaster, intersects, INTERSECTED, distance;
 
-let origin = new THREE.Vector3(10,0,0); //Ray origin
-let dir = new THREE.Vector3(-150,0,0); //Ray direction
+let origin = new THREE.Vector3(0,10,0); //Ray origin
+let dir = new THREE.Vector3(0,-150,0); //Ray direction
 let u = new THREE.Vector3(); //Ray direction unit vector
 
 // Pixel array
-let startNo = -3;
-let endNo = 3;
-let step = 0.1;
+let startNo = -1.5;
+let endNo = 1.5;
+let step = 0.01;
 let zRange = range(startNo, endNo, step);
-let yRange = range(startNo, endNo, step);
+let xRange = range(startNo, endNo, step);
 let radIn = 1.1; //m - rad for cannonball
-let hitPointY = [];
 let hitPointZ = [];
+let hitPointX = [];
+let hitPointY = [];
+let fMag = []; //Force magnitude
+let fDir = []; //Force direction
 
 
 
@@ -42,8 +45,6 @@ function init() {
         flatShading: false,
       });
     sphere = new THREE.Mesh( geometry, material );
-    sphere.position.z = 0.5;
-    sphere.position.y = 0.5;
     sphere.updateMatrixWorld();
     scene.add( sphere );
 
@@ -99,30 +100,78 @@ function transform( yaw,  ) {
 
 }
 
-// function extractValue(arr, prop) {
-
-//     // extract value from property
-//     let extractedValue = arr.map(item => item[prop]);
-
-//     return extractedValue;
-
+// function convertArrayOfObjectsToCSV(args) {
+//     var result, ctr, keys, columnDelimiter, lineDelimiter, data;
+    
+//     data = args.data || null;
+//     if (data == null || !data.length) {
+//     return null;
+//     }
+    
+//     columnDelimiter = args.columnDelimiter || ',';
+//     lineDelimiter = args.lineDelimiter || '\n';
+    
+//     keys = Object.keys(data[0]);
+    
+//     result = '';
+//     result += keys.join(columnDelimiter);
+//     result += lineDelimiter;
+    
+//     data.forEach(function(item) {
+//     ctr = 0;
+//     keys.forEach(function(key) {
+//     if (ctr > 0) result += columnDelimiter;
+    
+//     result += item[key];
+//     ctr++;
+//     });
+//     result += lineDelimiter;
+//     });
 // }
 
-// function exportToCsv(Results) {
-//     var CsvString = "";
-//     Results.forEach(function(RowItem, RowIndex) {
-//       RowItem.forEach(function(ColItem, ColIndex) {
-//         CsvString += ColItem + ',';
-//       });
-//       CsvString += "\r\n";
+// function downloadCSV(args) {
+//     let data, filename, link;
+//     const csv = convertArrayOfObjectsToCSV({
+//     data
 //     });
-//     CsvString = "data:application/csv," + encodeURIComponent(CsvString);
-//    var x = document.createElement("A");
-//    x.setAttribute("href", CsvString );
-//    x.setAttribute("download","somedata.csv");
-//    document.body.appendChild(x);
-//   }
-  
+//     if (csv == null) return;
+    
+//     filename = args.filename || 'export.csv';
+    
+//     if (!csv.match(/^data:text\/csv/i)) {
+//     csv = 'data:text/csv;charset=utf-8,' + csv;
+//     }
+//     data = encodeURI(csv);
+    
+//     link = document.createElement('a');
+//     link.setAttribute('href', data);
+//     link.download(filename);
+//     link.click();
+// }
+
+// function arrayToCSV (twoDiArray) {
+//     //  Modified from: http://stackoverflow.com/questions/17836273/
+//     //  export-javascript-data-to-csv-file-without-server-interaction
+//     const csvRows = [];
+//     for (const i = 0; i < twoDiArray.length; ++i) {
+//         for (const j = 0; j < twoDiArray[i].length; ++j) {
+//             twoDiArray[i][j] = '\"' + twoDiArray[i][j] + '\"';  // Handle elements that contain commas
+//         }
+//         csvRows.push(twoDiArray[i].join(','));
+//     }
+
+//     const csvString = csvRows.join('\r\n');
+//     const a         = document.createElement('a');
+//     a.href        = 'data:attachment/csv,' + csvString;
+//     a.target      = '_blank';
+//     a.download    = 'myFile.csv';
+
+//     document.body.appendChild(a);
+//     a.click();
+//     // Optional: Remove <a> from <body> after done
+// }
+
+
 
 function Raycast() {
 
@@ -135,8 +184,8 @@ function Raycast() {
         m=0;
         origin.z = zRange[n];
 
-        for(yRange[m]; m < yRange.length ; m++) {
-            origin.y = yRange[m];
+        for(xRange[m]; m < xRange.length ; m++) {
+            origin.x = xRange[m];
 
             raycaster.ray.set( origin, dir.normalize() );
             scene.add( new THREE.ArrowHelper(raycaster.ray.direction, raycaster.ray.origin,3,0xff0000));
@@ -154,23 +203,29 @@ function Raycast() {
                 
                 if ( INTERSECTED ) sphere.material.color.setHex( INTERSECTED.currentHex );
 
+                console.log(intersects);
+
                 // SRP calculation
                 const {0: {distance}} = intersects;
-                let W = 1368; //W/m2 - solar const
+                let W = 1368; //W/m2 - solar const 
                 let v = 0.7; // Reflectivity
                 let m = 1; //kg - area to mass ratio
                 let u = 0.4; //Specularity
-                let c = Math.pow(3,8); //Speed of light - UPDATE TO MORE ACCURATE
+                let c = 2.998*Math.pow(10,8); //Speed of light - UPDATE TO MORE ACCURATE
+                const Area = step*step; //array spacing
 
                 // console.log(radIn);
 
-                let fSRP = ((W*Math.PI*Math.pow(radIn,2))/c)*(1+(4/9)*v-(4/9)*v*u); //Force ignoring reflection and direction - UPDATEmen
+                let fSRP = ((W*Area)/c)*((1+(4/9)*v)-((4/9)*v*u)); //Force ignoring reflection and direction - UPDATEmen
 
+                fMag.push(fSRP); //Add force magnitude to an array
+
+                // console.log(fSRP);
                 console.log(fSRP);
                 console.log('We have contact');
                 console.log(origin);
 
-                hitPointY.push(origin.y);
+                hitPointX.push(origin.x);
                 hitPointZ.push(origin.z);
 
             } else {
@@ -185,7 +240,15 @@ function Raycast() {
         }
     }
 
-    console.log(hitPointY,hitPointZ);
+    console.log(
+        fMag.reduce((a, b) => a + b, 0)
+    )
+      console.log(
+        [].reduce((a, b) => a + b, 0)
+    )
+    
+    window.alert(hitPointX);
+    window.alert(hitPointZ);
 
+    // exportToCsv(hitPointY);
 }
-
