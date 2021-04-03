@@ -1,22 +1,31 @@
 //Make global vars
-let scene, camera, renderer, sphere, raycaster, intersects, INTERSECTED, distance;
+let scene, camera, renderer, sphere, raycaster, intersects, INTERSECTED, normal, plane;
 
-let origin = new THREE.Vector3(0,10,0); //Ray origin
-let dir = new THREE.Vector3(0,-150,0); //Ray direction
-let u = new THREE.Vector3(); //Ray direction unit vector
+let origin = new THREE.Vector3(0,0,0) //Ray origin
+let dir = new THREE.Vector3(0,0,-1).normalize(); //Ray direction
+let axis = new THREE.Vector3(1,0,0).normalize(); //Rotating around z
 
 // Pixel array
 let startNo = -1.5;
 let endNo = 1.5;
-let step = 0.01;
-let zRange = range(startNo, endNo, step);
+let step = 0.1;
 let xRange = range(startNo, endNo, step);
-let radIn = 1.1; //m - rad for cannonball
+let yRange = range(startNo, endNo, step);
+let angle = 10; //Deg
+let a = angle*Math.PI/180; // Angle from degree to rads
+
+//Define cannonball properties
+let radIn = 1; //m - rad for cannonball
+let m = 1; //kg - mass of cannonball
+let v = 0.7; // Reflectivity
+let u = 0.4; //Specularity
+
+// initialise data aquisition arrays
 let hitPointZ = [];
 let hitPointX = [];
 let hitPointY = [];
 let fMag = []; //Force magnitude
-let fDir = []; //Force direction
+let fDir = new THREE.Vector3(); //Force direction
 
 
 
@@ -40,8 +49,17 @@ function init() {
 
     const geometry = new THREE.SphereGeometry( radIn, 32, 32 );
 
+    plane = new THREE.Plane( new THREE.Vector3( 0, 0, -1 ), 10 );
+    const rotation = new THREE.Matrix4().makeRotationAxis(axis, a);
+    const optionalNormalMatrix = new THREE.Matrix3().getNormalMatrix( rotation );
+    plane.applyMatrix4(rotation, optionalNormalMatrix);
+    const helper = new THREE.PlaneHelper( plane, 1, 0xffff00 );
+    scene.add( helper );
+
+    // plane2 = new THREE.Plane(new THREE.Vector3(0,0))
+
     const material = new THREE.MeshPhongMaterial({
-        color: 0xFFFF00,    // red (can also use a CSS color string here)
+        color: 0xFFC300 ,    // Ball colour - orangy/yellow
         flatShading: false,
       });
     sphere = new THREE.Mesh( geometry, material );
@@ -56,12 +74,7 @@ function init() {
     container.appendChild( renderer.domElement );
 
     // Camera originates at same point as box geo - have to move add x change to stop intercepting
-    camera.position.z = 15;
-
-
-    // axis red-x, green-Y, blue-z
-    // const axesHelper = new THREE.AxesHelper( 5 );
-    // scene.add( axesHelper );
+    camera.position.z = 3;
 
     window.addEventListener('resize', onWindowResize, false);
 
@@ -95,83 +108,6 @@ function render() {
 
 }
 
-function transform( yaw,  ) {
-    // Rotates frame round the z axis (yaw)
-
-}
-
-// function convertArrayOfObjectsToCSV(args) {
-//     var result, ctr, keys, columnDelimiter, lineDelimiter, data;
-    
-//     data = args.data || null;
-//     if (data == null || !data.length) {
-//     return null;
-//     }
-    
-//     columnDelimiter = args.columnDelimiter || ',';
-//     lineDelimiter = args.lineDelimiter || '\n';
-    
-//     keys = Object.keys(data[0]);
-    
-//     result = '';
-//     result += keys.join(columnDelimiter);
-//     result += lineDelimiter;
-    
-//     data.forEach(function(item) {
-//     ctr = 0;
-//     keys.forEach(function(key) {
-//     if (ctr > 0) result += columnDelimiter;
-    
-//     result += item[key];
-//     ctr++;
-//     });
-//     result += lineDelimiter;
-//     });
-// }
-
-// function downloadCSV(args) {
-//     let data, filename, link;
-//     const csv = convertArrayOfObjectsToCSV({
-//     data
-//     });
-//     if (csv == null) return;
-    
-//     filename = args.filename || 'export.csv';
-    
-//     if (!csv.match(/^data:text\/csv/i)) {
-//     csv = 'data:text/csv;charset=utf-8,' + csv;
-//     }
-//     data = encodeURI(csv);
-    
-//     link = document.createElement('a');
-//     link.setAttribute('href', data);
-//     link.download(filename);
-//     link.click();
-// }
-
-// function arrayToCSV (twoDiArray) {
-//     //  Modified from: http://stackoverflow.com/questions/17836273/
-//     //  export-javascript-data-to-csv-file-without-server-interaction
-//     const csvRows = [];
-//     for (const i = 0; i < twoDiArray.length; ++i) {
-//         for (const j = 0; j < twoDiArray[i].length; ++j) {
-//             twoDiArray[i][j] = '\"' + twoDiArray[i][j] + '\"';  // Handle elements that contain commas
-//         }
-//         csvRows.push(twoDiArray[i].join(','));
-//     }
-
-//     const csvString = csvRows.join('\r\n');
-//     const a         = document.createElement('a');
-//     a.href        = 'data:attachment/csv,' + csvString;
-//     a.target      = '_blank';
-//     a.download    = 'myFile.csv';
-
-//     document.body.appendChild(a);
-//     a.click();
-//     // Optional: Remove <a> from <body> after done
-// }
-
-
 
 function Raycast() {
 
@@ -179,19 +115,29 @@ function Raycast() {
 
     n=0;
 
-    for (zRange[n]; n < zRange.length ; n++) {
+    for (xRange[n]; n < xRange.length ; n++) {
 
         m=0;
-        origin.z = zRange[n];
+        origin.x = xRange[n];
 
-        for(xRange[m]; m < xRange.length ; m++) {
-            origin.x = xRange[m];
+        for(yRange[m]; m < yRange.length ; m++) {
+            origin.y = yRange[m];
 
-            raycaster.ray.set( origin, dir.normalize() );
+            origin2 = plane.projectPoint(origin, axis);
+            dir2 = plane.normal;
+
+            console.log(dir2);
+
+            plane.updateMatrixWorld;
+
+            console.log(origin2);
+
+            console.log(dir2)
+
+            raycaster.ray.set( origin2, dir2);
             scene.add( new THREE.ArrowHelper(raycaster.ray.direction, raycaster.ray.origin,3,0xff0000));
 
             const intersects = raycaster.intersectObjects(scene.children, true);
-            // console.log(intersects[0]
 
             if ( intersects.length > 0 && intersects[0].face !== null) {
 
@@ -206,27 +152,29 @@ function Raycast() {
                 console.log(intersects);
 
                 // SRP calculation
-                const {0: {distance}} = intersects;
                 let W = 1368; //W/m2 - solar const 
-                let v = 0.7; // Reflectivity
-                let m = 1; //kg - area to mass ratio
-                let u = 0.4; //Specularity
                 let c = 2.998*Math.pow(10,8); //Speed of light - UPDATE TO MORE ACCURATE
                 const Area = step*step; //array spacing
-
-                // console.log(radIn);
 
                 let fSRP = ((W*Area)/c)*((1+(4/9)*v)-((4/9)*v*u)); //Force ignoring reflection and direction - UPDATEmen
 
                 fMag.push(fSRP); //Add force magnitude to an array
 
-                // console.log(fSRP);
+                const norm = intersects[0].face.normal;
+
+                const currentForceDir = new THREE.Vector3(norm.x, norm.y, norm.z);
+
                 console.log(fSRP);
                 console.log('We have contact');
-                console.log(origin);
+                console.log(origin2);
 
-                hitPointX.push(origin.x);
-                hitPointZ.push(origin.z);
+                hitPointX.push(origin2.x);
+                hitPointZ.push(origin2.z);
+                hitPointY.push(origin2.y)
+            
+
+                fDir = fDir.add(currentForceDir);
+                console.log(fDir);
 
             } else {
 
@@ -246,9 +194,12 @@ function Raycast() {
       console.log(
         [].reduce((a, b) => a + b, 0)
     )
-    
-    window.alert(hitPointX);
-    window.alert(hitPointZ);
 
-    // exportToCsv(hitPointY);
+    fDir.multiplyScalar(-1).normalize();
+    console.log(fDir);
+
+    scene.add(new THREE.ArrowHelper(fDir, new THREE.Vector3(0,0,0),3,0x0330e7));
+    
+    window.alert(hitPointY);
+    window.alert(hitPointX);
 }
