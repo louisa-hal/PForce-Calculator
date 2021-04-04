@@ -1,18 +1,18 @@
 //Make global vars
 let scene, camera, renderer, sphere, raycaster, intersects, INTERSECTED, normal, plane;
 
-let origin = new THREE.Vector3(0,0,0) //Ray origin
+let origin = new THREE.Vector3(0,0,0); //Ray origin
 let dir = new THREE.Vector3(0,0,-1).normalize(); //Ray direction
 let axis = new THREE.Vector3(1,0,0).normalize(); //Rotating around z
 
 // Pixel array
 let startNo = -1.5;
 let endNo = 1.5;
-let step = 0.1;
+let step = 0.03;
 let xRange = range(startNo, endNo, step);
 let yRange = range(startNo, endNo, step);
-let angle = 10; //Deg
-let a = angle*Math.PI/180; // Angle from degree to rads
+let angle = 45; //Deg
+let a = angle*(Math.PI)/180; // Angle from degree to rads
 
 //Define cannonball properties
 let radIn = 1; //m - rad for cannonball
@@ -52,11 +52,15 @@ function init() {
     plane = new THREE.Plane( new THREE.Vector3( 0, 0, -1 ), 10 );
     const rotation = new THREE.Matrix4().makeRotationAxis(axis, a);
     const optionalNormalMatrix = new THREE.Matrix3().getNormalMatrix( rotation );
-    plane.applyMatrix4(rotation, optionalNormalMatrix);
+    plane.applyMatrix4(rotation);
     const helper = new THREE.PlaneHelper( plane, 1, 0xffff00 );
     scene.add( helper );
 
-    // plane2 = new THREE.Plane(new THREE.Vector3(0,0))
+
+    console.log('Normal', plane.normal.normalize())
+
+    plane2 = new THREE.Plane(new THREE.Vector3(0,0))
+    plane2.applyMatrix4(rotation);
 
     const material = new THREE.MeshPhongMaterial({
         color: 0xFFC300 ,    // Ball colour - orangy/yellow
@@ -74,7 +78,9 @@ function init() {
     container.appendChild( renderer.domElement );
 
     // Camera originates at same point as box geo - have to move add x change to stop intercepting
-    camera.position.z = 3;
+    camera.position.z = 15;
+    // camera.position.y = -5;
+
 
     window.addEventListener('resize', onWindowResize, false);
 
@@ -124,11 +130,8 @@ function Raycast() {
             origin.y = yRange[m];
 
             origin2 = plane.projectPoint(origin, axis);
-            dir2 = plane.normal;
 
-            console.log(dir2);
-
-            plane.updateMatrixWorld;
+            dir2 = plane.normal
 
             console.log(origin2);
 
@@ -137,7 +140,8 @@ function Raycast() {
             raycaster.ray.set( origin2, dir2);
             scene.add( new THREE.ArrowHelper(raycaster.ray.direction, raycaster.ray.origin,3,0xff0000));
 
-            const intersects = raycaster.intersectObjects(scene.children, true);
+            const intersects = raycaster.intersectObject(sphere, true);
+
 
             if ( intersects.length > 0 && intersects[0].face !== null) {
 
@@ -169,8 +173,8 @@ function Raycast() {
                 console.log(origin2);
 
                 hitPointX.push(origin2.x);
+                hitPointY.push(origin2.y);
                 hitPointZ.push(origin2.z);
-                hitPointY.push(origin2.y)
             
 
                 fDir = fDir.add(currentForceDir);
@@ -188,18 +192,49 @@ function Raycast() {
         }
     }
 
-    console.log(
-        fMag.reduce((a, b) => a + b, 0)
-    )
-      console.log(
-        [].reduce((a, b) => a + b, 0)
-    )
+
+    const fSRP = fMag.reduce((partial_sum, b) => partial_sum + b,0); 
+    console.log(fSRP); // 6
+
+    // console.log(
+    //     fMag.reduce((a, b) => a + b, 0)
+    // )
+    //   console.log(
+    //     [].reduce((a, b) => a + b, 0)
+    // )
+
+    aMag = (fSRP)/1; // Acceleration (m2/s), F=ma
 
     fDir.multiplyScalar(-1).normalize();
-    console.log(fDir);
+    console.log(fDir,aMag);
+
+    //Angles between force vector and x, y and z axis
+    angleX = fDir.angleTo(new THREE.Vector3(1,0,0));
+    angleY = fDir.angleTo(new THREE.Vector3(0,1,0));
+    angleZ = fDir.angleTo(new THREE.Vector3(0,0,1));
+
+    console.log(angleX, angleY, angleZ);
+
+    //Resulting force acting in the x, y, z axis
+    aMagX = aMag*Math.cos(angleX);
+    aMagY = aMag*Math.cos(angleY);
+    aMagZ = aMag*Math.cos(angleZ);
+
+    console.log('Accel: ',aMagX,aMagY,aMagZ);
 
     scene.add(new THREE.ArrowHelper(fDir, new THREE.Vector3(0,0,0),3,0x0330e7));
+
+    // Split the fDir into x,y,z components
+
     
-    window.alert(hitPointY);
-    window.alert(hitPointX);
+    // window.alert(hitPointX);
+    // window.alert(hitPointY);
+    // window.alert(hitPointZ);
+
+    console.log('Angle: ', angle);
+
+    window.alert(aMagX);
+    window.alert(aMagY);
+    window.alert(aMagZ);
+
 }
