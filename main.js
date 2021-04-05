@@ -8,10 +8,10 @@ let axis = new THREE.Vector3(1,0,0).normalize(); //Rotating around z
 // Pixel array
 let startNo = -1.5;
 let endNo = 1.5;
-let step = 0.03;
+let step = 0.05;
 let xRange = range(startNo, endNo, step);
-let yRange = range(startNo, endNo, step);
-let angle = 45; //Deg
+let zRange = range(startNo, endNo, step);
+let angle = 180; //Deg
 let a = angle*(Math.PI)/180; // Angle from degree to rads
 
 //Define cannonball properties
@@ -49,7 +49,7 @@ function init() {
 
     const geometry = new THREE.SphereGeometry( radIn, 32, 32 );
 
-    plane = new THREE.Plane( new THREE.Vector3( 0, 0, -1 ), 10 );
+    plane = new THREE.Plane( new THREE.Vector3( 0, -1, 0 ), 10 );
     const rotation = new THREE.Matrix4().makeRotationAxis(axis, a);
     const optionalNormalMatrix = new THREE.Matrix3().getNormalMatrix( rotation );
     plane.applyMatrix4(rotation);
@@ -126,8 +126,8 @@ function Raycast() {
         m=0;
         origin.x = xRange[n];
 
-        for(yRange[m]; m < yRange.length ; m++) {
-            origin.y = yRange[m];
+        for(zRange[m]; m < zRange.length ; m++) {
+            origin.z = zRange[m];
 
             origin2 = plane.projectPoint(origin, axis);
 

@@ -14,9 +14,9 @@ datay180 = fileread('yvalues180.txt');
 dataz180 = fileread('zvalues180.txt');
 
 %Force
-dataFx = fileread('FSRPx.txt');
-dataFy = fileread('FSRPy.txt');
-dataFz = fileread('FSRPz.txt');
+dataFx = fileread('FSRPx copy.txt');
+dataFy = fileread('FSRPy copy.txt');
+dataFz = fileread('FSRPz copy.txt');
 
 
 x0 = str2num(datax0);
@@ -34,39 +34,45 @@ z180 = str2num(dataz180);
 xForce = str2num(dataFx);
 yForce = str2num(dataFy);
 zForce = str2num(dataFz);
-angle = 0:1:25;
+angle = 0:2:180;
 
 
 figure(1)
-scatter(x0,y0)
+scatter3(x0,y0,z0, 'filled')
 title('intersections for pixel array angle at 0deg')
 xlabel ('x')
 ylabel('y')
+zlabel('z')
 xlim([-1.2,1.2]);
 ylim([-1.2,1.2]);
+zlim([-1.2,1.2]);
 axis equal
 grid on
 grid minor
 
 
 figure(2)
-scatter(z90,x90)
+scatter3(x90, y90, z90, 'filled')
 title('intersections for pixel array angle at 90deg')
-xlabel ('z')
+xlabel ('x')
 ylabel('y')
+zlabel('z')
 xlim([-1.2,1.2]);
 ylim([-1.2,1.2]);
+zlim([-1.2,1.2]);
 axis equal
 grid on
 grid minor
 
 figure(3)
-scatter(x180,y180)
+scatter3(x180, y180, z180, 'filled')
 title('intersections for pixel array angle at 180deg')
 xlabel ('x')
 ylabel('y')
+zlabel('z')
 xlim([-1.2,1.2]);
 ylim([-1.2,1.2]);
+zlim([-1.2,1.2]);
 axis equal
 grid on
 grid minor
@@ -82,3 +88,5 @@ title('x, y and z components of the acceleration vector')
 xlabel ('angle')
 ylabel('acceleration')
 legend('xForce','yForce','zForce')
+grid on
+grid minor
