@@ -1,11 +1,11 @@
 //Make global vars
 let scene, camera, renderer, sphere, raycaster, intersects, INTERSECTED, normal, plane;
 
-let origin = new THREE.Vector3(0,0,0); //Ray origin
-let dir = new THREE.Vector3(0,0,-1).normalize(); //Ray direction
+let origin = new THREE.Vector3(); //Ray origin
+let dir = new THREE.Vector3(); //Ray direction
 let axis = new THREE.Vector3(1,0,0).normalize(); //Rotating around z
 
-// Pixel array
+// Pixel array inputs
 let startNo = -1.5;
 let endNo = 1.5;
 let step = 0.05;
@@ -20,7 +20,7 @@ let m = 1; //kg - mass of cannonball
 let v = 0.7; // Reflectivity
 let u = 0.4; //Specularity
 
-// initialise data aquisition arrays
+// initialise data aquisition arrays - for intersects, force and direction
 let hitPointZ = [];
 let hitPointX = [];
 let hitPointY = [];
@@ -42,13 +42,14 @@ function init() {
     scene = new THREE.Scene();
     scene.background = new THREE.Color( 0xf0f0f0 );
 
-    //Add light
+    // dd light
     const light = new THREE.DirectionalLight( 0xffffff, 1 );
     light.position.set( 100, 100, 100 ).normalize();
     scene.add( light );
 
     const geometry = new THREE.SphereGeometry( radIn, 32, 32 );
 
+    // Add Plane
     plane = new THREE.Plane( new THREE.Vector3( 0, -1, 0 ), 10 );
     const rotation = new THREE.Matrix4().makeRotationAxis(axis, a);
     const optionalNormalMatrix = new THREE.Matrix3().getNormalMatrix( rotation );
@@ -57,11 +58,7 @@ function init() {
     scene.add( helper );
 
 
-    console.log('Normal', plane.normal.normalize())
-
-    plane2 = new THREE.Plane(new THREE.Vector3(0,0))
-    plane2.applyMatrix4(rotation);
-
+    // Add cannonball
     const material = new THREE.MeshPhongMaterial({
         color: 0xFFC300 ,    // Ball colour - orangy/yellow
         flatShading: false,
@@ -70,8 +67,10 @@ function init() {
     sphere.updateMatrixWorld();
     scene.add( sphere );
 
+    // Initialise Raycaster
     raycaster = new THREE.Raycaster();
 
+    // For window resize
     renderer = new THREE.WebGLRenderer({ antialias: true});
     renderer.setPixelRatio( window.devicePixelRatio );
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -103,6 +102,7 @@ function animate() {
 
 }
 
+// Function for populating the pixel array between limits with reolution = 'step'
 function range(start, end, step) {
     const len = Math.floor((end - start) / step) + 1
     return Array(len).fill().map((_, idx) => start + (idx * step))
@@ -115,6 +115,7 @@ function render() {
 }
 
 
+// Ray casting and acceleration/ force calculation
 function Raycast() {
 
     let 
@@ -122,38 +123,35 @@ function Raycast() {
     n=0;
 
     for (xRange[n]; n < xRange.length ; n++) {
+        // Cycle through x components
 
         m=0;
-        origin.x = xRange[n];
+        origin.x = xRange[n]; // Set x comp
 
         for(zRange[m]; m < zRange.length ; m++) {
-            origin.z = zRange[m];
+            // Cycle through z components to populate for x values
 
-            origin2 = plane.projectPoint(origin, axis);
+            origin.z = zRange[m]; // Set z comp
 
-            dir2 = plane.normal
+            origin2 = plane.projectPoint(origin, axis); // Project generated point onto plane
 
-            console.log(origin2);
+            dir = plane.normal;
 
-            console.log(dir2)
 
-            raycaster.ray.set( origin2, dir2);
-            scene.add( new THREE.ArrowHelper(raycaster.ray.direction, raycaster.ray.origin,3,0xff0000));
+            raycaster.ray.set( origin2, dir.normalize()); // Create ray
+            scene.add( new THREE.ArrowHelper(raycaster.ray.direction, raycaster.ray.origin,3,0xff0000)); // Visualise
 
             const intersects = raycaster.intersectObject(sphere, true);
 
 
             if ( intersects.length > 0 && intersects[0].face !== null) {
-
-                console.log('array length', intersects);
+                // If intersects
 
                 INTERSECTED = intersects[ 0 ].object;          
                 INTERSECTED.currentHex = INTERSECTED.material.color.getHex();
                 INTERSECTED.material.color.setHex( 0xff00070 );
                 
                 if ( INTERSECTED ) sphere.material.color.setHex( INTERSECTED.currentHex );
-
-                console.log(intersects);
 
                 // SRP calculation
                 let W = 1368; //W/m2 - solar const 
@@ -166,12 +164,13 @@ function Raycast() {
 
                 const norm = intersects[0].face.normal;
 
-                const currentForceDir = new THREE.Vector3(norm.x, norm.y, norm.z);
+                const currentForceDir = new THREE.Vector3(norm.x, norm.y, norm.z); // Direction vector of each intersection's force
 
                 console.log(fSRP);
                 console.log('We have contact');
                 console.log(origin2);
 
+                // Add co ords of intersected points to array
                 hitPointX.push(origin2.x);
                 hitPointY.push(origin2.y);
                 hitPointZ.push(origin2.z);
@@ -183,6 +182,7 @@ function Raycast() {
             } else {
 
                 if ( INTERSECTED ) INTERSECTED.material.color.setHex( INTERSECTED.currentHex );
+                // If no hit
 
                 INTERSECTED = null;
 
@@ -193,39 +193,25 @@ function Raycast() {
     }
 
 
-    const fSRP = fMag.reduce((partial_sum, b) => partial_sum + b,0); 
-    console.log(fSRP); // 6
-
-    // console.log(
-    //     fMag.reduce((a, b) => a + b, 0)
-    // )
-    //   console.log(
-    //     [].reduce((a, b) => a + b, 0)
-    // )
+    const fSRP = fMag.reduce((partial_sum, b) => partial_sum + b,0); // Sum the overall force
+    console.log(fSRP); // Overall value
 
     aMag = (fSRP)/1; // Acceleration (m2/s), F=ma
 
     fDir.multiplyScalar(-1).normalize();
     console.log(fDir,aMag);
 
-    //Angles between force vector and x, y and z axis
+    //Angles between force vector and x, y and z axis - for finding x, y and z components of Accel
     angleX = fDir.angleTo(new THREE.Vector3(1,0,0));
     angleY = fDir.angleTo(new THREE.Vector3(0,1,0));
     angleZ = fDir.angleTo(new THREE.Vector3(0,0,1));
-
-    console.log(angleX, angleY, angleZ);
 
     //Resulting force acting in the x, y, z axis
     aMagX = aMag*Math.cos(angleX);
     aMagY = aMag*Math.cos(angleY);
     aMagZ = aMag*Math.cos(angleZ);
 
-    console.log('Accel: ',aMagX,aMagY,aMagZ);
-
-    scene.add(new THREE.ArrowHelper(fDir, new THREE.Vector3(0,0,0),3,0x0330e7));
-
-    // Split the fDir into x,y,z components
-
+    scene.add(new THREE.ArrowHelper(fDir, new THREE.Vector3(0,0,0),3,0x0330e7)); // Visualise overall accel vector
     
     // window.alert(hitPointX);
     // window.alert(hitPointY);
